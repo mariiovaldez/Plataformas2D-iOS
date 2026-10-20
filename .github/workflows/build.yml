@@ -1,0 +1,63 @@
+name: Build iOS (.ipa)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    name: Compilar Xcode -> .ipa
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ver versiones
+        run: |
+          sw_vers
+          xcodebuild -version
+
+      - name: Compilar para iPhone (sin firmar)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project Proyecto-Youtube_IOS.xcodeproj \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=NO \
+            ENABLE_BITCODE=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            build
+
+      - name: Empaquetar .ipa
+        run: |
+          set -e
+          APP=$(find build/Build/Products -maxdepth 1 -name "*.app" -type d | head -n 1)
+          if [ -z "$APP" ]; then
+            echo "No se encontro el .app compilado"
+            find build -maxdepth 4 -type d
+            exit 1
+          fi
+          echo "App compilada: $APP"
+          rm -rf Payload
+          mkdir Payload
+          cp -R "$APP" Payload/
+          rm -f Plataformas2D.ipa
+          zip -qry Plataformas2D.ipa Payload
+          ls -lh Plataformas2D.ipa
+
+      - name: Subir .ipa como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: Plataformas2D-ipa
+          path: Plataformas2D.ipa
+          if-no-files-found: error
+          retention-days: 14
