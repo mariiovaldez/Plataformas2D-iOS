@@ -24,6 +24,7 @@ jobs:
           set -o pipefail
           xcodebuild \
             -project Proyecto-Youtube_IOS.xcodeproj \
+            -scheme Proyecto-Youtube_IOS \
             -configuration Release \
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
